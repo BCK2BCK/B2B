@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Catch the Icon Game!</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background: linear-gradient(80deg, #000000, #271010, #000000);
+            overflow: hidden;
+            position: relative; 
+            height: 100vh; 
+            user-select: none; 
+        }
+
+        h1 {
+            margin-bottom: 20px;
+            color: #f0f0f0;
+        }
+
+        .icon {
+            width: 100px;
+            position: absolute;
+            cursor: pointer;
+            transition: transform 0.5s ease;
+            z-index: 10;
+            display: none; 
+        }
+
+        .icon.correct {
+            transform: scale(1.2) rotate(360deg); 
+            transition: transform 0.5s ease;
+        }
+
+        .icon.incorrect {
+            transform: scale(0.8);
+            transition: transform 0.5s ease;
+        }
+
+        .score, .best-score, .timer {
+            font-size: 20px;
+            color: #f0f0f0;
+            margin: 10px;
+        }
+
+        .start-button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .confetti {
+            position: absolute;
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        @keyframes fall {
+            to {
+                transform: translateY(100vh);
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Catch BATYA!</h1>
+    <button class="start-button" id="startBtn">Start Game</button>
+    <div id="icon" class="icon"><img id="iconImage" src="images/Ava_rare_batya_2_ar.png" alt="Icon"></div>
+    <div class="score">Score: <span id="score">0</span></div>
+    <div class="best-score">Best Score: <span id="bestScore">0</span></div>
+    <div class="timer">Time: <span id="time">10</span>s</div>
+
+    <audio id="correctSound" src="sounds/correct.mp3" preload="auto"></audio>
+    <audio id="incorrectSound" src="sounds/incorrect.mp3" preload="auto"></audio>
+    <audio id="backgroundMusic" src="sounds/background.mp3" preload="auto" loop></audio>
+    
+    <script>
+        const icon = document.getElementById('icon');
+        const iconImage = document.getElementById('iconImage');
+        const scoreDisplay = document.getElementById('score');
+        const bestScoreDisplay = document.getElementById('bestScore');
+        const timeDisplay = document.getElementById('time');
+        const startButton = document.getElementById('startBtn');
+
+        const correctSound = document.getElementById('correctSound');
+        const incorrectSound = document.getElementById('incorrectSound');
+        const backgroundMusic = document.getElementById('backgroundMusic');
+        backgroundMusic.volume = 0.4;
+
+        let score = 0;
+        let bestScore = localStorage.getItem('bestScore') || 0; 
+        let timer = 10;
+        let countdown;
+        let iconTimeout;
+        let difficultyFactor = 3000;
+
+        bestScoreDisplay.textContent = bestScore;
+
+        const defaultImage = "images/Ava_rare_batya_2_ar.png"; 
+        const correctImage = "images/correct.PNG"; 
+        const incorrectImage = "images/incorrect.PNG"; 
+
+        startButton.addEventListener('click', startGame);
+
+        function startGame() {
+            score = 0;  
+            scoreDisplay.textContent = score;
+            timer = 10; 
+            timeDisplay.textContent = timer;
+            icon.style.display = "block"; 
+            positionIcon();
+            countdown = setInterval(updateTimer, 1000);
+            scheduleIcon();
+            backgroundMusic.play(); 
+            startButton.style.display = "none"; 
+            scaleElements();
+        }
+
+        function updateTimer() {
+            if (timer > 0) {
+                timer--;
+                timeDisplay.textContent = timer;
+            }
+            if (timer <= 0) {
+                clearInterval(countdown);
+                timer = 0;
+                endGame();
+            }
+        }
+
+        function endGame() {
+            icon.style.display = "none"; 
+            backgroundMusic.pause(); 
+            clearTimeout(iconTimeout);
+            if (score > bestScore) {
+                bestScore = score;
+                localStorage.setItem('bestScore', bestScore);
+                animateConfetti();
+            }
+            alert(`Game over! Your score: ${score}`);
+            startButton.style.display = "inline-block"; 
+            timeDisplay.textContent = timer;
+        }
+
+        function positionIcon() {
+            const maxX = window.innerWidth - icon.offsetWidth;
+            const maxY = window.innerHeight - icon.offsetHeight;
+            const randomX = Math.random() * maxX;
+            const randomY = Math.random() * maxY;
+
+            icon.style.transform = `translate(${randomX}px, ${randomY}px)`;
+        }
+
+        function scheduleIcon() {
+            iconTimeout = setTimeout(() => {
+                positionIcon();
+                scheduleIcon();
+            }, difficultyFactor); 
+        }
+
+        icon.addEventListener('click', () => {
+            score++; 
+            scoreDisplay.textContent = score; 
+            timer += 3; 
+            timeDisplay.textContent = timer; 
+
+            correctSound.currentTime = 0; 
+            correctSound.play();
+
+            iconImage.src = correctImage;
+            icon.classList.add('correct');
+
+            setTimeout(() => {
+                icon.classList.remove('correct');
+                iconImage.src = defaultImage; 
+            }, 500); 
+
+            updateDifficulty();
+            setTimeout(() => positionIcon(), 100); 
+        });
+
+        document.body.addEventListener('click', (event) => {
+            if (!icon.contains(event.target)) {
+                timer -= 3;
+                timeDisplay.textContent = timer < 0 ? 0 : timer;
+                
+                incorrectSound.currentTime = 0; 
+                incorrectSound.play();
+                
+                iconImage.src = incorrectImage;
+                icon.classList.add('incorrect');
+                
+                setTimeout(() => {
+                    icon.classList.remove('incorrect');
+                    iconImage.src = defaultImage; 
+                }, 500); 
+            }
+        });
+
+        function updateDifficulty() {
+            if (score <= 5) {
+                difficultyFactor = 2000; 
+            } else if (score <= 10) {
+                difficultyFactor = 1600; 
+            } else if (score <= 15) {
+                difficultyFactor = 1200; 
+            } else if (score <= 25) {
+                difficultyFactor = 1000; 
+            } else if (score <= 35) {
+                difficultyFactor = 800; 
+            } else {
+                difficultyFactor = 500; 
+            }
+
+            clearTimeout(iconTimeout); 
+            scheduleIcon(); 
+        }
+
+        function animateConfetti() {
+            const confetti = document.createElement('div');
+            confetti.className = 'confetti';
+            const confettiCount = 100; 
+            for (let i = 0; i < confettiCount; i++) {
+                const confettiPiece = document.createElement('div');
+                confettiPiece.style.width = '10px';
+                confettiPiece.style.height = '10px';
+                confettiPiece.style.backgroundColor = `hsl(${Math.random() * 360}, 100%, 50%)`;
+                confettiPiece.style.position = 'absolute';
+                confettiPiece.style.left = `${Math.random() * window.innerWidth}px`;
+                confettiPiece.style.top = `${Math.random() * window.innerHeight}px`;
+                confettiPiece.style.opacity = Math.random();
+                confettiPiece.style.transform = `translateY(-100vh)`;
+                confettiPiece.style.animation = `fall ${Math.random() * 2 + 2}s linear forwards`;
+                confetti.appendChild(confettiPiece);
+            }
+            document.body.appendChild(confetti);
+            setTimeout(() => {
+                confetti.remove(); 
+            }, 3000);
+        }
+
+        // Prevent double-tap zoom
+        window.addEventListener('touchstart', function (event) {
+            if (event.touches.length > 1) {
+                event.preventDefault();
+            }
+        });
+
+        window.onload = () => {
+            bestScoreDisplay.textContent = bestScore;
+            scaleElements(); // Scale elements on load
+        };
+        
+        // Scale elements based on the current scale
+        function scaleElements() {
+            const scaleFactor = window.innerWidth / window.outerWidth;
+
+            // Scale fonts, buttons, and icons
+            document.querySelectorAll('.score, .best-score, .timer').forEach(elem => {
+                elem.style.fontSize = `${20 * scaleFactor}px`;
+            });
+            const startButton = document.querySelector('.start-button');
+            startButton.style.fontSize = `${16 * scaleFactor}px`;
+            startButton.style.padding = `${10 * scaleFactor}px ${20 * scaleFactor}px`;
+
+            const iconElements = document.querySelectorAll('.icon');
+            iconElements.forEach(iconElem => {
+                const newSize = 100 * scaleFactor;
+                iconElem.style.width = `${newSize}px`;
+                iconElem.querySelector('img').style.width = `${newSize}px`; // Scale the image too
+            });
+        }
+
+        // Adjust scaling on resize
+        window.addEventListener('resize', scaleElements);
+    </script>
+</body>
+</html>
