@@ -265,7 +265,7 @@
             }
         });
 
-        function updateDifficulty() {
+         function updateDifficulty() {
             if (score <= 5) {
                 difficultyFactor = 2000; 
             } else if (score <= 10) {
@@ -276,8 +276,12 @@
                 difficultyFactor = 1000; 
             } else if (score <= 35) {
                 difficultyFactor = 800; 
+            } else if (score <= 45) {
+                    difficultyFactor = 600; 
+            } else if (score <= 55) {
+                    difficultyFactor = 500; 
             } else {
-                difficultyFactor = 500; 
+                difficultyFactor = 300; 
             }
 
             clearTimeout(iconTimeout); 
